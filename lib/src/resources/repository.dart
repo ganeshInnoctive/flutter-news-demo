@@ -3,22 +3,60 @@ import 'package:flutter_news_demo/src/resources/news_api_provider.dart';
 import 'package:flutter_news_demo/src/resources/news_db_provider.dart';
 
 class Repository {
-  NewsDbProvider dbProvider = NewsDbProvider();
-  NewsApiProvider apiProvider = NewsApiProvider();
+  List<Source> sources = <Source>[
+    newsDbProvider,
+    NewsApiProvider(),
+  ];
 
-  Future<List<int>> fetchTopIds() {
-    return apiProvider.fetchTopIds();
+  List<Cache> caches = <Cache>[
+    newsDbProvider,
+  ];
+
+  Future<List<int>> fetchTopIds() async {
+    List<int> id;
+    Source source;
+
+    for (source in sources) {
+      id = await source.fetchTopIds();
+    }
+
+    return id;
   }
 
   Future<ItemModel> fetchItem(int id) async {
-    var item = await dbProvider.fetchItem(id);
+    ItemModel item;
+    var source;
 
-    if (item != null) {
-      return item;
+    for (source in sources) {
+      item = await source.fetchItem(id);
+      if (item != null) {
+        break;
+      }
     }
 
-    item = await apiProvider.fetchItem(id);
-    dbProvider.addItem(item);
+    for (var cache in caches) {
+      if (cache != source) {
+        cache.addItem(item);
+      }
+    }
+
     return item;
   }
+
+  clearCache() async {
+    for (var cache in caches) {
+      await cache.clearAllData();
+    }
+  }
+}
+
+abstract class Source {
+  Future<List<int>> fetchTopIds();
+  Future<ItemModel> fetchItem(int id);
+}
+
+abstract class Cache {
+  Future<int> addItem(ItemModel item);
+
+  Future<int> clearAllData();
 }

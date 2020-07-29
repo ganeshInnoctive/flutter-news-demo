@@ -1,12 +1,17 @@
 import 'dart:io';
+import 'package:flutter_news_demo/src/resources/repository.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 
 import '../models/item_model.dart';
 
-class NewsDbProvider {
+class NewsDbProvider implements Source, Cache {
   Database db;
+
+  NewsDbProvider() {
+    init();
+  }
 
   init() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
@@ -55,6 +60,21 @@ class NewsDbProvider {
   }
 
   Future<int> addItem(ItemModel item) {
-    return db.insert('Items', item.toMapForDb());
+    return db.insert(
+      'Items',
+      item.toMapForDb(),
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  Future<int> clearAllData() {
+    return db.delete('Items');
+  }
+
+  @override
+  Future<List<int>> fetchTopIds() {
+    return null;
   }
 }
+
+final newsDbProvider = NewsDbProvider();
